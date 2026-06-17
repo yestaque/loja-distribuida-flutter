@@ -19,78 +19,35 @@ import 'pages/splash_page.dart';
 import 'pages/login_page.dart';
 import 'pages/produtos_page.dart';
 
-
-
 void main() async {
-
-
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-
-  runApp(
-    const MyApp()
-  );
-
-
+  runApp(const MyApp());
 }
-
-
-
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
 
-const MyApp({super.key});
+      title: "Loja Distribuída",
 
+      initialRoute: "/",
 
+      routes: {
+        "/": (context) => const SplashPage(),
 
-@override
-Widget build(BuildContext context){
+        "/login": (context) => const LoginPage(),
 
-
-return MaterialApp(
-
-
-debugShowCheckedModeBanner:false,
-
-
-title:"Loja Distribuída",
-
-
-initialRoute:"/",
-
-
-routes:{
-
-
-"/":
-(context)=>const SplashPage(),
-
-
-
-"/login":
-(context)=>const LoginPage(),
-
-
-
-"/produtos":
-(context)=>const ProdutosPage(),
-
-
-},
-
-
-);
-
-
-}
-
-
+        "/produtos": (context) => const ProdutosPage(),
+      },
+    );
+  }
 }
 
 class WeatherService {
@@ -103,6 +60,7 @@ class WeatherService {
     );
 
     final response = await http.get(url);
+    Uri.parse("http://localhost:8000/produtos");
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
@@ -579,9 +537,9 @@ class HomePage extends StatelessWidget {
         const SizedBox(height: 10),
 
         const Text(
-  "Mais vendidos",
-  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-),
+          "Mais vendidos",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
 
         SizedBox(
           height: 220,
@@ -599,7 +557,6 @@ class HomePage extends StatelessWidget {
                   child: Column(
                     children: [
                       Expanded(child: Image.asset(p.imagem, fit: BoxFit.cover)),
-                      
 
                       Padding(
                         padding: const EdgeInsets.all(8),
@@ -645,16 +602,16 @@ class HomePage extends StatelessWidget {
         ),
 
         Container(
-  padding: const EdgeInsets.all(16),
-  decoration: BoxDecoration(
-    color: Colors.purple,
-    borderRadius: BorderRadius.circular(12),
-  ),
-  child: const Text(
-    "Promoção da Semana 🔥\nVestidos por R\$20",
-    style: TextStyle(fontSize: 18),
-  ),
-),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.purple,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            "Promoção da Semana 🔥\nVestidos por R\$20",
+            style: TextStyle(fontSize: 18),
+          ),
+        ),
 
         const SizedBox(height: 30),
 
@@ -677,16 +634,14 @@ class HomePage extends StatelessWidget {
         ),
 
         ElevatedButton.icon(
-  onPressed: abrirWhatsApp,
-  icon: const Icon(Icons.chat),
-  label: const Text("Falar no WhatsApp"),
-)
+          onPressed: abrirWhatsApp,
+          icon: const Icon(Icons.chat),
+          label: const Text("Falar no WhatsApp"),
+        ),
       ],
     );
   }
 }
-
-
 
 class CategoriaItem extends StatelessWidget {
   final IconData icon;
@@ -975,7 +930,6 @@ class CheckoutPixPage extends StatefulWidget {
 final pixService = PixService();
 
 class _CheckoutPixPageState extends State<CheckoutPixPage> {
-
   bool carregando = false;
 
   String? qrPix;
@@ -985,7 +939,6 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
 
   @override
   Widget build(BuildContext context) {
-
     double total = carrinho.fold(
       0,
       (s, p) => s + (p.preco * (quantidade[p] ?? 1)),
@@ -997,7 +950,6 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-
             /// QR CODE
             qrPix == null
                 ? const Text("Clique em gerar PIX")
@@ -1023,13 +975,11 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
             /// BOTÃO GERAR PIX
             ElevatedButton(
               onPressed: () async {
-
                 setState(() {
                   carregando = true;
                 });
 
                 try {
-
                   final pix = await pixService.criarPix(total);
 
                   setState(() {
@@ -1039,13 +989,10 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
                   });
 
                   verificarPagamento();
-
                 } catch (e) {
-
                   setState(() {
                     carregando = false;
                   });
-
                 }
               },
               child: const Text("Gerar PIX"),
@@ -1058,11 +1005,11 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: () async {
-
                       final pedidoService = PedidoService();
 
-                      List<String> produtosPedido =
-                          carrinho.map((p) => p.nome).toList();
+                      List<String> produtosPedido = carrinho
+                          .map((p) => p.nome)
+                          .toList();
 
                       await pedidoService.salvarPedido(total, produtosPedido);
 
@@ -1089,22 +1036,19 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
 
   /// VERIFICA PAGAMENTO AUTOMÁTICO
   void verificarPagamento() {
-
     timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-
       if (idPagamento == null) return;
 
       final status = await pixService.verificarPagamento(idPagamento!);
 
       if (status["status"] == "approved") {
-
         timer.cancel();
 
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Pagamento confirmado")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Pagamento confirmado")));
       }
     });
   }
@@ -1115,6 +1059,7 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
     super.dispose();
   }
 }
+
 /* ================= PERFIL ================= */
 class PerfilDonoPage extends StatelessWidget {
   const PerfilDonoPage({super.key});
