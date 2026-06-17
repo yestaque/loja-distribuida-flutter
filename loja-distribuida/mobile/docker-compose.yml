@@ -1,0 +1,170 @@
+services:
+
+
+ postgres:
+
+  image: postgres:16
+
+  container_name: postgres-loja
+
+  environment:
+
+   POSTGRES_USER: admin
+
+   POSTGRES_PASSWORD: 123456
+
+   POSTGRES_DB: loja
+
+
+  ports:
+
+   - "5432:5432"
+
+
+  volumes:
+
+   - postgres_data:/var/lib/postgresql/data
+
+
+
+
+
+ rabbitmq:
+
+
+  image: rabbitmq:3-management
+
+
+  container_name: rabbitmq-loja
+
+
+  ports:
+
+   - "5672:5672"
+
+   - "15672:15672"
+
+
+
+
+
+ auth-service:
+
+
+  build:
+
+   context: ./backend/auth-service
+
+
+  container_name: auth-service
+
+
+  ports:
+
+   - "8004:8004"
+
+
+  depends_on:
+
+   - postgres
+
+
+
+
+
+ produto-service:
+
+
+  build:
+
+   context: ./backend/produto-service
+
+
+  container_name: produto-service
+
+
+  ports:
+
+   - "8001:8001"
+
+
+
+
+
+ pedido-service:
+
+
+  build:
+
+   context: ./backend/pedido-service
+
+
+  container_name: pedido-service
+
+
+  ports:
+
+   - "8002:8002"
+
+
+  depends_on:
+
+   - rabbitmq
+
+
+
+
+
+ pagamento-service:
+
+
+  build:
+
+   context: ./backend/pagamento-service
+
+
+  container_name: pagamento-service
+
+
+  ports:
+
+   - "8003:8003"
+
+
+  depends_on:
+
+   - rabbitmq
+
+
+
+
+
+ gateway-api:
+
+
+  build:
+
+   context: ./backend/gateway-api
+
+
+  container_name: gateway-api
+
+
+  ports:
+
+   - "8000:8000"
+
+
+  depends_on:
+
+   - auth-service
+
+   - produto-service
+
+
+
+
+
+volumes:
+
+ postgres_data:

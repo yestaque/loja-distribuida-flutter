@@ -7,36 +7,90 @@ import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'services/pedido_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../services/pix_service.dart';
+import 'pages/produtos_page.dart';
 
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 
+import 'pages/splash_page.dart';
+import 'pages/login_page.dart';
+import 'pages/produtos_page.dart';
+
+
+
 void main() async {
+
+
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+
+  runApp(
+    const MyApp()
+  );
+
+
 }
 
-/* ================= APP ================= */
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Loja de Bazar',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.purple,
-          brightness: Brightness.dark,
-        ),
-      ),
-      home: const LoginPage(),
-    );
-  }
+
+
+class MyApp extends StatelessWidget {
+
+
+const MyApp({super.key});
+
+
+
+@override
+Widget build(BuildContext context){
+
+
+return MaterialApp(
+
+
+debugShowCheckedModeBanner:false,
+
+
+title:"Loja Distribuída",
+
+
+initialRoute:"/",
+
+
+routes:{
+
+
+"/":
+(context)=>const SplashPage(),
+
+
+
+"/login":
+(context)=>const LoginPage(),
+
+
+
+"/produtos":
+(context)=>const ProdutosPage(),
+
+
+},
+
+
+);
+
+
+}
+
+
 }
 
 class WeatherService {
@@ -918,27 +972,23 @@ class CheckoutPixPage extends StatefulWidget {
   State<CheckoutPixPage> createState() => _CheckoutPixPageState();
 }
 
+final pixService = PixService();
+
 class _CheckoutPixPageState extends State<CheckoutPixPage> {
+
   bool carregando = false;
+
+  String? qrPix;
+  String? idPagamento;
+
+  Timer? timer;
 
   @override
   Widget build(BuildContext context) {
-    // Calcula total do carrinho
+
     double total = carrinho.fold(
       0,
       (s, p) => s + (p.preco * (quantidade[p] ?? 1)),
-    );
-
-    // Gera ID único do pedido
-    String idPedido = DateTime.now().millisecondsSinceEpoch.toString();
-
-    // Gera payload PIX
-    String payload = gerarPixDinamico(
-      chavePix: "84992160269",
-      nome: "Gabriel Bacelar",
-      cidade: "NATAL",
-      valor: total,
-      idPedido: idPedido,
     );
 
     return Scaffold(
@@ -947,80 +997,124 @@ class _CheckoutPixPageState extends State<CheckoutPixPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            QrImageView(
-              data: payload,
-              size: 250,
-              backgroundColor: Colors.white,
-            ),
+
+            /// QR CODE
+            qrPix == null
+                ? const Text("Clique em gerar PIX")
+                : QrImageView(
+                    data: qrPix!,
+                    size: 250,
+                    backgroundColor: Colors.white,
+                  ),
+
             const SizedBox(height: 20),
+
             Text(
               'Total: R\$ ${total.toStringAsFixed(2)}',
               style: const TextStyle(fontSize: 24),
             ),
+
             const SizedBox(height: 20),
-            SelectableText('Chave PIX: 84992160269'),
+
+            const SelectableText('Chave PIX: 84992160269'),
+
             const Spacer(),
+
+            /// BOTÃO GERAR PIX
+            ElevatedButton(
+              onPressed: () async {
+
+                setState(() {
+                  carregando = true;
+                });
+
+                try {
+
+                  final pix = await pixService.criarPix(total);
+
+                  setState(() {
+                    qrPix = pix["qr"];
+                    idPagamento = pix["id"];
+                    carregando = false;
+                  });
+
+                  verificarPagamento();
+
+                } catch (e) {
+
+                  setState(() {
+                    carregando = false;
+                  });
+
+                }
+              },
+              child: const Text("Gerar PIX"),
+            ),
+
+            const SizedBox(height: 10),
+
+            /// FINALIZAR PEDIDO
             carregando
-    ? const CircularProgressIndicator()
-    : ElevatedButton(
-        onPressed: () async {
-          setState(() {
-            carregando = true;
-          });
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: () async {
 
-          try {
-            final pedidoService = PedidoService();
+                      final pedidoService = PedidoService();
 
-            double total = carrinho.fold(
-              0,
-              (s, p) => s + (p.preco * (quantidade[p] ?? 1)),
-            );
+                      List<String> produtosPedido =
+                          carrinho.map((p) => p.nome).toList();
 
-            List<String> produtosPedido =
-                carrinho.map((p) => p.nome).toList();
+                      await pedidoService.salvarPedido(total, produtosPedido);
 
-            await pedidoService.salvarPedido(total, produtosPedido);
+                      carrinho.clear();
+                      quantidade.clear();
 
-            // limpar carrinho
-            carrinho.clear();
-            quantidade.clear();
+                      if (!mounted) return;
 
-            if (!mounted) return;
+                      Navigator.pop(context);
 
-            setState(() {
-              carregando = false;
-            });
-
-            Navigator.pop(context);
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Pedido finalizado com sucesso"),
-              ),
-            );
-          } catch (e) {
-            if (!mounted) return;
-
-            setState(() {
-              carregando = false;
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Erro ao finalizar pedido: $e"),
-              ),
-            );
-          }
-        },
-        child: const Text("Finalizar Pedido"),
-      ),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Pedido finalizado com sucesso"),
+                        ),
+                      );
+                    },
+                    child: const Text("Finalizar Pedido"),
+                  ),
           ],
         ),
       ),
     );
   }
-}
 
+  /// VERIFICA PAGAMENTO AUTOMÁTICO
+  void verificarPagamento() {
+
+    timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+
+      if (idPagamento == null) return;
+
+      final status = await pixService.verificarPagamento(idPagamento!);
+
+      if (status["status"] == "approved") {
+
+        timer.cancel();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Pagamento confirmado")),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+}
 /* ================= PERFIL ================= */
 class PerfilDonoPage extends StatelessWidget {
   const PerfilDonoPage({super.key});

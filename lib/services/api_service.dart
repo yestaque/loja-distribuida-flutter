@@ -1,18 +1,77 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/produto.dart';
 
-class ApiService {
-  final String baseUrl = "http://SEU_IP:3000";
 
-  Future<List<Produto>> buscarProdutos() async {
-    final response = await http.get(Uri.parse("$baseUrl/produtos"));
 
-    if (response.statusCode == 200) {
-      List data = jsonDecode(response.body);
-      return data.map((json) => Produto.fromJson(json)).toList();
-    } else {
-      throw Exception("Erro ao buscar produtos");
-    }
-  }
+class ApiService{
+
+
+final Dio dio = Dio();
+
+
+final String url =
+"http://10.0.2.2:8000";
+
+
+
+
+Future<List<Produto>> buscarProdutos() async{
+
+
+final prefs =
+await SharedPreferences.getInstance();
+
+
+
+final token =
+prefs.getString(
+"token"
+);
+
+
+
+final response =
+await dio.get(
+
+
+"$url/produtos",
+
+
+
+options:Options(
+
+
+headers:{
+
+
+"Authorization":
+"Bearer $token"
+
+
+}
+
+
+)
+
+
+);
+
+
+
+List data=response.data;
+
+
+
+return data
+.map(
+(json)=>Produto.fromJson(json)
+)
+.toList();
+
+
+
+}
+
+
 }

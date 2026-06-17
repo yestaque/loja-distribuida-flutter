@@ -1,15 +1,25 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-
-const produtoRoutes = require('./routes/produtos');
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-app.use('/produtos', produtoRoutes);
+app.get("/", (req,res)=>{
+  res.send("Backend PIX funcionando");
+});
 
-app.get('/', (req,res)=>res.send('Backend Loja Bazar ativo!'));
+app.post("/pix/criar",(req,res)=>{
 
-app.listen(3000,()=>console.log('Servidor rodando na porta 3000'));
+  const {valor,email} = req.body;
+
+  res.json({
+    id: Date.now(),
+    qr: "00020126580014BR.GOV.BCB.PIX..."
+  });
+
+});
+
+app.listen(3000,()=>{
+  console.log("Servidor rodando na porta 3000");
+});

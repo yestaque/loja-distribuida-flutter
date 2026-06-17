@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../pages/register_page.dart';
-import '../main.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,65 +10,63 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
   final email = TextEditingController();
+
   final senha = TextEditingController();
 
   final auth = AuthService();
 
-  login() async {
+  void entrar() async {
+    try {
+      await auth.login(email.text, senha.text);
 
-    await auth.login(email.text, senha.text);
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const AppPrincipal()),
-    );
-
+      Navigator.pushReplacementNamed(context, "/produtos");
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Login inválido")));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
+      appBar: AppBar(title: Text("Login")),
 
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
 
         child: Column(
           children: [
-
             TextField(
               controller: email,
-              decoration: const InputDecoration(labelText: "Email"),
+
+              decoration: InputDecoration(labelText: "Email"),
             ),
 
             TextField(
               controller: senha,
-              decoration: const InputDecoration(labelText: "Senha"),
+
               obscureText: true,
+
+              decoration: InputDecoration(labelText: "Senha"),
             ),
+
+            ElevatedButton(onPressed: entrar, child: Text("Entrar")),
 
             const SizedBox(height: 20),
 
-            ElevatedButton(
-              onPressed: login,
-              child: const Text("Entrar"),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+
+                  MaterialPageRoute(builder: (context) => const RegisterPage()),
+                );
+              },
+
+              child: const Text("Criar conta"),
             ),
-            
-
-           TextButton(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RegisterPage(),
-      ),
-    );
-  },
-  child: Text("Cadastrar"),
-)
-
           ],
         ),
       ),

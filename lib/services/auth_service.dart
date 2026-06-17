@@ -1,52 +1,143 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
-  // LOGIN EMAIL
-  Future<User?> login(String email, String senha) async {
-    final cred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: senha,
+
+  final String url = "http://localhost:8000";
+
+
+
+  Future<String?> getToken() async {
+
+
+    final prefs = await SharedPreferences.getInstance();
+
+
+    return prefs.getString("token");
+
+
+  }
+
+
+
+
+Future<void> register(
+String nome,
+String email,
+String senha
+
+) async {
+
+
+final response = await http.post(
+
+Uri.parse("$url/cadastro"),
+
+
+headers:{
+"Content-Type":"application/json"
+},
+
+
+body: jsonEncode({
+
+"nome":nome,
+
+"email":email,
+
+"senha":senha
+
+})
+
+
+);
+
+
+
+if(response.statusCode != 200){
+
+throw Exception("Erro cadastro");
+
+}
+
+
+}
+
+
+
+  Future<void> login(
+    String email,
+    String senha
+
+  ) async {
+
+
+
+    final response = await http.post(
+
+      Uri.parse("$url/login"),
+
+
+      headers: {
+
+        "Content-Type":"application/json"
+
+      },
+
+
+      body: jsonEncode({
+
+        "email":email,
+
+        "senha":senha
+
+      }),
+
     );
 
-    return cred.user;
+
+
+    print(response.body);
+
+
+
+    if(response.statusCode == 200){
+
+
+      final data = jsonDecode(response.body);
+
+
+
+      final prefs =
+      await SharedPreferences.getInstance();
+
+
+
+      await prefs.setString(
+
+        "token",
+
+        data["access_token"]
+
+      );
+
+
+
+    }else{
+
+
+      throw Exception("Login inválido");
+
+
+    }
+
+
+
   }
 
-  // REGISTRO
-  Future<User?> register(String email, String senha) async {
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: senha,
-    );
 
-    return cred.user;
-  }
 
-  // LOGIN GOOGLE
-  Future<User?> signInWithGoogle() async {
-    await _googleSignIn.initialize();
-
-    final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-
-    if (googleUser == null) return null;
-
-    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-    );
-
-    final userCredential = await _auth.signInWithCredential(credential);
-
-    return userCredential.user;
-  }
-
-  // LOGOUT
-  Future<void> logout() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
-  }
 }
